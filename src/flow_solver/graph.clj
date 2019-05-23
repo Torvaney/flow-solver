@@ -13,13 +13,13 @@
    [:red  #{[2 1] [0 2]}]])
 
 
-(defn- create-node
+(defn create-node
   ([id xy]
    {:id id
-    :coord xy})
+    :coord (vec xy)})
   ([id xy colour]
    {:id id
-    :coord xy
+    :coord (vec xy)
     :colour colour}))
 
 
@@ -27,7 +27,8 @@
   "Create a set of nodes on a square, cartesian coordinate system"
   [dim]
   (->> (combo/cartesian-product (range dim) (range dim))
-       (map-indexed create-node)))
+       (map-indexed create-node)
+       (reduce #(assoc %1 (:id %2) %2) {})))
 
 
 (defn- create-edge
@@ -59,7 +60,7 @@
   "Create an empty square graph"
   [dim]
   (let [nodes (square-nodes dim)
-        edges (connect-edges connect-square nodes)]
+        edges (connect-edges connect-square (vals nodes))]
     {:nodes nodes
      :edges edges}))
 
