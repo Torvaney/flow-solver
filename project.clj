@@ -6,7 +6,9 @@
   
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/math.combinatorics "0.1.5"]
-                 [org.clojure/test.check "0.10.0-alpha4"]]
+                 [org.clojure/test.check "0.10.0-alpha4"]
+                 [rolling-stones "1.0.0"]
+                 [ubergraph "0.5.3"]]
 
   :main flow-solver.core
 

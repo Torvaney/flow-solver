@@ -1,40 +1,13 @@
 (ns flow-solver.graph
   (:require [clojure.math.combinatorics :as combo]
-            [clojure.pprint]))
-
-;; TODO: ensure that all IDs in nodes and edges are unique
-
-(def example-nodes
-  ; Looks like
-  ; - - o
-  ; - o x
-  ; x - -
-  [[:blue #{[2 0] [1 1]}]
-   [:red  #{[2 1] [0 2]}]])
-
-
-(defn create-node
-  ([id xy]
-   {:id id
-    :coord (vec xy)})
-  ([id xy colour]
-   {:id id
-    :coord (vec xy)
-    :colour colour}))
+            [clojure.pprint]
+            [ubergraph.core :as uber]))
 
 
 (defn square-nodes
-  "Create a set of nodes on a square, cartesian coordinate system"
+  "Create a set of nodes (coordinates) on a square, cartesian coordinate system"
   [dim]
-  (->> (combo/cartesian-product (range dim) (range dim))
-       (map-indexed create-node)
-       (reduce #(assoc %1 (:id %2) %2) {})))
-
-
-(defn- create-edge
-  [id nodes]
-  {:id id
-   :<-> (set (map :id nodes))})
+  (->> (combo/cartesian-product (range dim) (range dim)) (mapv vec)))
 
 
 (defn connect-edges
@@ -44,12 +17,12 @@
   [p nodes]
   (->> (combo/combinations nodes 2)
        (filter #(apply p %))
-       (map-indexed create-edge)))
+       (mapv vec)))
 
 
-(defn connect-square
-  "Connect two nodes if they are adjacent (not including diagonals)"
-  [{[x1 y1] :coord} {[x2 y2] :coord}]
+(defn square?
+  "Returns true two nodes if they are adjacent (not including diagonals). Else false."
+  [[x1 y1] [x2 y2]]
   (or (and (= x1 x2)
            (<= -1 (- y2 y1) 1))
       (and (= y1 y2)
@@ -60,29 +33,35 @@
   "Create an empty square graph"
   [dim]
   (let [nodes (square-nodes dim)
-        edges (connect-edges connect-square (vals nodes))]
-    {:nodes nodes
-     :edges edges}))
+        edges (connect-edges square? nodes)]
+    (apply uber/graph edges)))
 
 
-; (defn replace-node
-;   [graph id node]
-;   {:nodes
-;    :edges ()})
+(defn replace-node
+  [{:keys [nodes edges]} id node]
+  {:nodes (assoc nodes id node)
+   :edges edges})
+
+
+(def example-graph-spec
+  ; Looks like
+  ; - - o
+  ; - o x
+  ; x - -
+  {:dim   3
+   :nodes [[[2 0] {:color :blue}]
+           [[1 1] {:color :blue}]
+           [[2 1] {:color :red}]
+           [[0 2] {:color :red}]]})
 
 
 (defn init-graph
   "Create a new graph from a graph spec"
-  [x]
-  1)
+  [{:keys [dim nodes]}]
+  (apply uber/add-nodes-with-attrs (square-graph dim) nodes))
 
 
-(defn draw-graph
+(defn draw
   "Draw a graph"
-  [x]
-  (println x "Hello, World!"))
-
-
-(defn -main
-  []
-  (clojure.pprint/pprint (square-graph 3)))
+  [graph]
+  (uber/viz-graph graph {:layout :neato}))
