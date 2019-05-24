@@ -43,18 +43,6 @@
    :edges edges})
 
 
-(def example-graph-spec
-  ; Looks like
-  ; - - o
-  ; - o x
-  ; x - -
-  {:dim   3
-   :nodes [[[2 0] {:color :blue}]
-           [[1 1] {:color :blue}]
-           [[2 1] {:color :red}]
-           [[0 2] {:color :red}]]})
-
-
 (defn init-graph
   "Create a new graph from a graph spec"
   [{:keys [dim nodes]}]

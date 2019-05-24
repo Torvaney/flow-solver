@@ -1,23 +1,41 @@
 (ns flow-solver.core
-  (:require [flow-solver.graph :as graph]
-            [clojure.pprint]))
+(:require [flow-solver.graph :as graph]
+          [flow-solver.sat :as flow-sat]
+          [rolling-stones.core :as sat]
+          [ubergraph.core :as uber]))
 
 
-(def example-nodes
-  ; Looks like
-  ; - - o
-  ; - o x
-  ; x - -
-  [[:blue #{[2 0] [1 1]}]
-   [:red  #{[2 1] [0 2]}]])
+(def example-graph-spec-2
+; Looks like
+; x o
+; x o
+  {:dim   2
+   :nodes [[[0 0] {:color :blue}]
+           [[0 1] {:color :blue}]
+           [[1 1] {:color :red}]
+           [[1 0] {:color :red}]]})
 
 
-(defn draw-graph
-  "Draw a graph"
-  [x]
-  (println x "Hello, World!"))
+(def example-graph-spec-3
+; Looks like
+; - - o
+; - o x
+; x - -
+  {:dim   3
+   :nodes [[[2 0] {:color :blue}]
+           [[1 1] {:color :blue}]
+           [[2 1] {:color :red}]
+           [[0 2] {:color :red}]]})
 
 
 (defn -main
   []
-  (clojure.pprint/pprint (graph/square-graph 3)))
+  ; (-> example-graph-spec
+  ;     graph/init-graph
+  ;     uber/pprint)
+  (->> example-graph-spec-3
+       graph/init-graph
+       flow-sat/graph->sat
+       sat/solve-symbolic-formula
+       (filter sat/positive?)
+       clojure.pprint/pprint))
