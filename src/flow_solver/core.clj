@@ -30,12 +30,10 @@
 
 (defn -main
   []
-  ; (-> example-graph-spec
-  ;     graph/init-graph
-  ;     uber/pprint)
-  (->> example-graph-spec-3
-       graph/init-graph
-       flow-sat/graph->sat
-       sat/solve-symbolic-formula
-       (filter sat/positive?)
-       clojure.pprint/pprint))
+  (let [g (graph/init-graph example-graph-spec-3)]
+    (graph/draw g)
+    (->> g 
+         flow-sat/graph->sat 
+         sat/solve-symbolic-formula
+         flow-sat/sat->graph
+         graph/draw)))

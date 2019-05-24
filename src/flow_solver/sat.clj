@@ -17,9 +17,9 @@
 (defn edge->sat
   "Converts an edge to a SAT symbol"
   ([edge]
-    {:<-> #{(uber/src edge) (uber/dest edge)}})
+   {:<-> #{(uber/src edge) (uber/dest edge)}})
   ([edge colour]
-    {:<-> #{(uber/src edge) (uber/dest edge)}
+   {:<-> #{(uber/src edge) (uber/dest edge)}
     :colour colour}))
 
 
@@ -106,3 +106,18 @@
     (sat/AND
      (one-hot-edges colours (uber/edges g))
      (nodes->sat g))))
+
+
+(defn sat->edge
+  "Converts an edge to a SAT symbol"
+  [{nodes :<-> colour :colour}]
+  [(first nodes) (second nodes) {:color colour}])
+
+
+(defn sat->graph
+  "Convert a solved SAT into a graph"
+  [solution]
+  (->> solution
+       (filter sat/positive?)
+       (mapv sat->edge)
+       (apply uber/graph)))
