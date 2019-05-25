@@ -52,4 +52,7 @@
 (defn draw
   "Draw a graph"
   [graph]
+  ;; Set the Nodes' fill colour
+  ;; Set the edges' colour
+  ;; Set the background colour
   (uber/viz-graph graph {:layout :neato}))
