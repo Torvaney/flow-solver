@@ -11,6 +11,5 @@
                  [ubergraph "0.5.3"]]
 
   :main flow-solver.core
-  :jvm-opts ["-Xmx2g"]
 
   :repl-options {:init-ns flow-solver.core})
