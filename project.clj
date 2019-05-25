@@ -1,6 +1,6 @@
 (defproject flow-solver "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Solving the Flow Free puzzle game with Clojure and SAT."
+  :url "https://github.com/Torvaney/flow-solver"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   
@@ -11,5 +11,6 @@
                  [ubergraph "0.5.3"]]
 
   :main flow-solver.core
+  :jvm-opts ["-Xmx2g"]
 
   :repl-options {:init-ns flow-solver.core})

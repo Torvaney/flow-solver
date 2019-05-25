@@ -1,14 +1,15 @@
 # flow-solver
 
-A Clojure library designed to ... well, that part is up to you.
+Solving the [Flow Free](https://en.wikipedia.org/wiki/Flow_Free) puzzle game with
+Clojure and SAT.
 
 ## Usage
 
-FIXME
+Run with `lein run`
 
 ## License
 
-Copyright © 2019 FIXME
+Copyright © 2019 Ben Torvaney
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
@@ -20,9 +21,3 @@ Public License, v. 2.0 are satisfied: GNU General Public License as published by
 the Free Software Foundation, either version 2 of the License, or (at your
 option) any later version, with the GNU Classpath Exception which is available
 at https://www.gnu.org/software/classpath/license.html.
-
-## TODO
-
-* Spec functions
-* Move test.check dependency to test dependencies
-* Replace IDs with something more dependent types-y?
