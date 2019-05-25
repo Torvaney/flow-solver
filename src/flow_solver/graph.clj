@@ -52,6 +52,7 @@
 ;; Display
 
 (defn infer-colour
+  "Infer the colour of a node from its edges"
   [g node]
   (some->> (uber/in-edges g node)
            (map #(uber/attrs g %))
@@ -93,12 +94,19 @@
        (add-node-attrs (constantly default-node-attrs))))
 
 
+(def default-viz-opts
+  {:layout    :neato
+   :ratio     1
+   :bgcolor   :black})
+
+
 (defn draw
   "Draw a graph"
-  [g]
-  (-> g
-      style-graph
-      (uber/viz-graph
-       {:layout    :neato
-        :ratio     1
-        :bgcolor   :black})))
+  ([g]
+   (draw g {}))
+  ([g opts]
+   (let [viz-opts (merge opts default-viz-opts)]
+     (do (-> g 
+             style-graph 
+             (uber/viz-graph viz-opts))
+         g))))
