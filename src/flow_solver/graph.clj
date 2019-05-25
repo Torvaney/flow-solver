@@ -49,10 +49,56 @@
   (apply uber/add-nodes-with-attrs (square-graph dim) nodes))
 
 
+;; Display
+
+(defn infer-colour
+  [g node]
+  (some->> (uber/in-edges g node)
+           (map #(uber/attrs g %))
+           (keep :color)
+           distinct
+           first
+           (assoc {} :color)))
+
+
+(defn merge-attrs
+  "Returns a node with new attributes derived from f. Keeping any attributes that
+   already exist."
+  [f g node]
+  (let [current  (uber/attrs g node)
+        new      (f g node)
+        combined (merge new current)]
+    [node combined]))
+
+
+(defn add-node-attrs
+  [f g]
+  (->> (uber/nodes g)
+       (map #(merge-attrs f g %))
+       (apply uber/add-nodes-with-attrs g)))
+
+
+(def default-node-attrs
+  {:style    :filled
+   :color    :black
+   :fontname "courier"
+   :shape    :circle
+   :ratio    1})
+
+
+(defn style-graph
+  [g]
+  (->> g
+       (add-node-attrs infer-colour)
+       (add-node-attrs (constantly default-node-attrs))))
+
+
 (defn draw
   "Draw a graph"
-  [graph]
-  ;; Set the Nodes' fill colour
-  ;; Set the edges' colour
-  ;; Set the background colour
-  (uber/viz-graph graph {:layout :neato}))
+  [g]
+  (-> g
+      style-graph
+      (uber/viz-graph
+       {:layout    :neato
+        :ratio     1
+        :bgcolor   :black})))

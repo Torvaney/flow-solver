@@ -50,12 +50,32 @@
            [[5 8] {:color :deeppink4}]]})
 
 
+
+(def example-easy
+  {:dim   5
+   :nodes [[[0 0] {:color :blue}]
+           [[4 0] {:color :yellow}]
+           [[1 2] {:color :red}]
+           [[2 2] {:color :darkgreen}]
+           [[2 3] {:color :blue}]
+           [[0 4] {:color :darkgreen}]
+           [[1 4] {:color :red}]
+           [[2 4] {:color :yellow}]]})
+
+
+(defn log [msg x] (do (println msg) x))
+
+
 (defn -main
   []
-  (let [g (graph/init-graph example-hard)]
+  (let [g (graph/init-graph example-easy)]
     (graph/draw g)
     (->> g 
+         (log "Converting graph to SAT...")
          flow-sat/graph->sat 
+         (log "Solving SAT...")
          sat/solve-symbolic-formula
+         (log "Converting solution to graph...")
          flow-sat/sat->graph
-         graph/draw)))
+         graph/draw)
+    (println "Done!")))
