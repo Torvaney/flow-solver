@@ -28,10 +28,8 @@
   (->> (map #(edge->sat edge %) colours) (cons (edge->sat edge))))
 
 
-(defn filtered-edge-combinations
-  "TODO: a better fn name
-
-  Find all possible edge combinations that satisfy p"
+(defn edges-such-that
+  "Find all possible edge combinations that satisfy predicate function p"
   [p all-colours edges]
   (let [possible-edges    (map #(edge-colours all-colours %) edges)
         edge-combinations (apply combo/cartesian-product possible-edges)]
@@ -82,10 +80,8 @@
   (let [colours     (get-graph-colours g)
         edges       (uber/find-edges g {:src node})]
     (if-let [colour (get-node-colour g node)]
-    ;; find all possible edge colors, and take cartesian-product to get all the combinations. 
-    ;; Then, filter out invalid combinations, and thread remaining ones into an OR
-      (filtered-edge-combinations #(exactly-one-colour colour %) colours edges)
-      (filtered-edge-combinations exactly-two-colours colours edges))))
+      (edges-such-that #(exactly-one-colour colour %) colours edges)
+      (edges-such-that exactly-two-colours            colours edges))))
 
 
 (defn nodes->sat
