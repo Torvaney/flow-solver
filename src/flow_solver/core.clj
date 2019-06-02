@@ -2,9 +2,7 @@
 (:require [flow-solver.graph :as graph]
           [flow-solver.sat :as flow-sat]
           [clojure.edn :as edn]
-          [clojure.java.io :as io]
-          [rolling-stones.core :as sat]
-          [ubergraph.core :as uber]))
+          [clojure.java.io :as io]))
 
 
 (defn -main
