@@ -57,7 +57,7 @@
 
 
 (defn one-hot-edge-colour
-  "One-hot encodes an edge's colour a a SAT expression"
+  "One-hot encodes an edge's colour as a SAT expression"
   [colours edge]
   (->> (edge-colours colours edge)
        combo/permutations
@@ -66,9 +66,9 @@
 
 
 (defn one-hot-edges
-  "One-hot encodes a set of edges' colours a a SAT expression"
+  "One-hot encodes a set of edges' colours as a SAT expression"
   [colours edges]
-  (apply sat/AND (map #(one-hot-edge-colour colours %) edges)))
+  (apply sat/AND (mapv #(one-hot-edge-colour colours %) edges)))
 
 
 (defn node->sat
