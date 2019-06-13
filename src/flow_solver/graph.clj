@@ -37,12 +37,6 @@
     (apply uber/graph edges)))
 
 
-(defn replace-node
-  [{:keys [nodes edges]} id node]
-  {:nodes (assoc nodes id node)
-   :edges edges})
-
-
 (defn init-graph
   "Create a new graph from a graph spec"
   [{:keys [dim nodes]}]
