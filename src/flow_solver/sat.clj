@@ -6,26 +6,30 @@
 
 
 (defn create-node
-  [[x y :as coords] attrs]
-  (if attrs
-    [coords attrs]
-    [coords]))
+  "Create a new node from coordinates and (optionally) attributes."
+  ([coords]
+   (create-node coords nil))
+  ([[x y :as coords] attrs]
+   (if attrs
+     [coords attrs]
+     [coords])))
 
 
-(defn merge-attrs
+(defn attach-attrs
+  "Attach attributes to a coll of nodes"
   [g nodes]
   (mapv #(create-node % (get (:attrs g) %)) nodes))
 
 
 (defn nodes-with-attrs
   [g]
-  (->> (uber/nodes g) (merge-attrs g)))
+  (->> (uber/nodes g) (attach-attrs g)))
 
 
 (defn connected-nodes
   "Get any nodes connected by an edge to a given node."
   [g [coord colour :as node]]
-  (->> (uber/successors g coord) (merge-attrs g)))
+  (->> (uber/successors g coord) (attach-attrs g)))
 
 
 (defn possible-node-colours
@@ -37,7 +41,7 @@
 
 
 (defn one-hot
-  "One-hot encodes variable as a SAT expression"
+  "One-hot encodes a variable as a SAT expression"
   [variants]
   (->> variants
        combo/permutations
@@ -46,12 +50,13 @@
 
 
 (defn one-hot-node-colour
-  "Create a SAT expression for the edges connected to all nodes."
+  "Creates a SAT expression for the edges connected to all nodes."
   [colours node]
   (->> node (possible-node-colours colours) one-hot))
 
 
 (defn node-colours
+  "Creates a SAT expression asserting that each node should have exactly one colour"
   [colours g]
   (->> (nodes-with-attrs g)
        (map #(one-hot-node-colour colours %))
@@ -65,7 +70,7 @@
 
 
 (defn connected-to-n-of-same-colour
-  "Creates a SAT expression that checks that a given node is part of a continuous flow.
+  "Creates a SAT expression asserting that a given node is part of a valid pipe of a specific colour.
 
    This means checking that the correct number of adjacent nodes are the same colour as the
    node in question.
@@ -86,8 +91,9 @@
       (sat/negate node)))
 
 
-(defn adjacent-node-colours
-  "Check the colours of nodes adjacent to a given node"
+(defn node-in-pipe
+  "Creates a SAT expression asserting that a given node is part of a valid pipe of 
+   any colour by comparing it to neighbouring nodes' colours."
   [colours g node]
   (if-let [colour (second node)]
     (connected-to-n-of-same-colour colours 1 g node)
@@ -96,10 +102,12 @@
          (apply sat/OR))))
 
 
-(defn all-adjacent-node-colours
+(defn nodes-in-pipes
+  "Creates a SAT expression asserting that each node is part of a valid pipe
+   by comparing it to neighbouring nodes' colours."
   [colours g]
   (->> (nodes-with-attrs g)
-       (map #(adjacent-node-colours colours g %))
+       (map #(node-in-pipe colours g %))
        (apply sat/AND)))
 
 
@@ -109,7 +117,7 @@
   (let [colours (->> g :attrs vals (map :color) distinct)]
     (sat/AND
      (node-colours colours g)
-     (all-adjacent-node-colours colours g))))
+     (nodes-in-pipes colours g))))
 
 
 (defn sat->graph
