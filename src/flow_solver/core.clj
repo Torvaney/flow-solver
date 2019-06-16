@@ -19,7 +19,7 @@
   [map-file & args]
   (let [init   (-> map-file slurp edn/read-string graph/init-graph)
         solved (solve init)]
-    (do (graph/draw init  {:save {:filename (str (io/resource "output") "/before.png")
-                                  :format   :png}})
+    (do (graph/draw init   {:save {:filename (str (io/resource "output") "/before.png")
+                                   :format   :png}})
         (graph/draw solved {:save {:filename (str (io/resource "output") "/after.png")
                                    :format   :png}}))))
