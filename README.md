@@ -5,7 +5,8 @@ Clojure and SAT.
 
 ## Usage
 
-Run with `lein run`
+Run with `lein run path/to/spec.edn`. See example map specifications in
+`resources/examples`.
 
 ## License
 
