@@ -45,32 +45,33 @@
 
 ;; Display
 
-(defn infer-colour
-  "Infer the colour of a node from its edges"
-  [g node]
-  (some->> (uber/in-edges g node)
-           (map #(uber/attrs g %))
-           (keep :color)
-           distinct
-           first
-           (assoc {} :color)))
-
 
 (defn merge-attrs
-  "Returns a node with new attributes derived from f. Keeping any attributes that
-   already exist."
-  [f g node]
-  (let [current  (uber/attrs g node)
-        new      (f g node)
+  "Returns a node-or-edge with new attributes derived from f. Keeping any attributes 
+   that already exist."
+  [f g node-or-edge]
+  (let [current  (uber/attrs g node-or-edge)
+        new      (f g node-or-edge)
         combined (merge new current)]
-    [node combined]))
+    (if (uber/edge? node-or-edge)
+      [(:src node-or-edge) (:dest node-or-edge) combined]
+      [node-or-edge combined])))
 
 
 (defn add-node-attrs
   [f g]
   (->> (uber/nodes g)
        (map #(merge-attrs f g %))
+       (filter some?)
        (apply uber/add-nodes-with-attrs g)))
+
+
+(defn add-edge-attrs
+  [f g]
+  (->> (uber/edges g)
+       (map #(merge-attrs f g %))
+       (filter some?)
+       (apply uber/add-undirected-edges g)))
 
 
 (def default-node-attrs
@@ -81,11 +82,25 @@
    :ratio    1})
 
 
+(defn get-node-colour
+  [g node]
+  (-> g :attrs (get node) :color))
+
+
+(defn infer-edge-colour
+  "Infer edge colour from nodes. If both connected nodes are the same colour, draw
+   an edge of that colour."
+  [g {:keys [src dest] :as edge}]
+  (when (= (get-node-colour g src)
+           (get-node-colour g dest))
+    {:color (get-node-colour g src)}))
+
+
 (defn style-graph
   [g]
   (->> g
-       (add-node-attrs infer-colour)
-       (add-node-attrs (constantly default-node-attrs))))
+       (add-node-attrs (constantly default-node-attrs))
+       (add-edge-attrs infer-edge-colour)))
 
 
 (def default-viz-opts
@@ -101,7 +116,6 @@
    (draw g {}))
   ([g opts]
    (let [viz-opts (merge opts default-viz-opts)]
-     (do (-> g 
-             style-graph 
-             (uber/viz-graph viz-opts))
-         g))))
+     (-> g
+         style-graph
+         (uber/viz-graph viz-opts)))))

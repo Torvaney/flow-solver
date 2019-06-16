@@ -5,16 +5,6 @@
             [ubergraph.core :as uber]))
 
 
-(defn get-graph-colours
-  [g]
-  (->> g :attrs vals (map :color) distinct))
-
-
-(defn get-node-colour
-  [g node]
-  (-> g :attrs (get node) :color))
-
-
 (defn create-node
   [[x y :as coords] attrs]
   (if attrs
@@ -116,24 +106,10 @@
 (defn graph->sat
   "Convert a graph to a SAT expression"
   [g]
-  (let [colours (get-graph-colours g)]
+  (let [colours (->> g :attrs vals (map :color) distinct)]
     (sat/AND
      (node-colours colours g)
      (all-adjacent-node-colours colours g))))
-
-
-(defn infer-edge-colour
-  [g {:keys [src dest] :as edge}]
-  (when (= (get-node-colour g src)
-           (get-node-colour g dest))
-    [src dest {:color (get-node-colour g src)}]))
-
-
-(defn infer-edge-colours
-  "Infer edge colours for aesthetic value"
-  [g]
-  (let [edges (->> (uber/edges g) (map #(infer-edge-colour g %)) (filter some?))]
-    (apply uber/add-undirected-edges g edges)))
 
 
 (defn sat->graph
@@ -141,5 +117,4 @@
   [init solution]
   (->> solution
        (filter sat/positive?)
-       (apply uber/add-nodes-with-attrs init)
-       infer-edge-colours))
+       (apply uber/add-nodes-with-attrs init)))
