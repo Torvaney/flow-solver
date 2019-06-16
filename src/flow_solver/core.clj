@@ -7,14 +7,19 @@
           [ubergraph.core :as uber]))
 
 
+(defn solve-map
+  [init]
+  (->> init 
+       flow-sat/graph->sat 
+       sat/solve-symbolic-formula 
+       (flow-sat/sat->graph init)))
+
+
 (defn -main
   [map-file & args]
-  (-> map-file slurp edn/read-string
-      graph/init-graph
-      (graph/draw {:save {:filename (str (io/resource "output") "/before.png")
-                          :format   :png}})
-      flow-sat/graph->sat
-      sat/solve-symbolic-formula
-      flow-sat/sat->graph
-      (graph/draw {:save {:filename (str (io/resource "output") "/after.png")
-                          :format   :png}})))
+  (let [init   (-> map-file slurp edn/read-string graph/init-graph)
+        solved (solve-map init)]
+    (do (graph/draw init  {:save {:filename (str (io/resource "output") "/before.png")
+                                  :format   :png}})
+        (graph/draw solved {:save {:filename (str (io/resource "output") "/after.png")
+                                   :format   :png}}))))

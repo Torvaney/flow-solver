@@ -21,7 +21,7 @@
 
 
 (defn square?
-  "Returns true two nodes if they are adjacent (not including diagonals). Else false."
+  "Returns true if two nodes are adjacent (not including diagonals). Else false."
   [[x1 y1] [x2 y2]]
   (or (and (= x1 x2)
            (<= -1 (- y2 y1) 1))
@@ -91,7 +91,8 @@
 (def default-viz-opts
   {:layout    :neato
    :ratio     1
-   :bgcolor   :black})
+   :bgcolor   :black
+   })
 
 
 (defn draw
