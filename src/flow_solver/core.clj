@@ -1,13 +1,13 @@
 (ns flow-solver.core
-(:require [flow-solver.graph :as graph]
-          [flow-solver.sat :as flow-sat]
-          [clojure.edn :as edn]
-          [clojure.java.io :as io]
-          [rolling-stones.core :as sat]
-          [ubergraph.core :as uber]))
+  (:require [flow-solver.graph :as graph]
+            [flow-solver.sat :as flow-sat]
+            [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [rolling-stones.core :as sat]
+            [ubergraph.core :as uber]))
 
 
-(defn solve-map
+(defn solve
   [init]
   (->> init 
        flow-sat/graph->sat 
@@ -18,7 +18,7 @@
 (defn -main
   [map-file & args]
   (let [init   (-> map-file slurp edn/read-string graph/init-graph)
-        solved (solve-map init)]
+        solved (solve init)]
     (do (graph/draw init  {:save {:filename (str (io/resource "output") "/before.png")
                                   :format   :png}})
         (graph/draw solved {:save {:filename (str (io/resource "output") "/after.png")
