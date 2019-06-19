@@ -74,12 +74,25 @@
        (apply uber/add-undirected-edges g)))
 
 
+(defn colour->fillcolour
+  [g node]
+  (if-let [colour (:color (uber/attrs g node))]
+    {:fillcolor colour}
+    {}))
+
+
+(defn set-coordinates
+  [g [x y :as node]]
+  {:pos (str x "," y)})
+
+
 (def default-node-attrs
-  {:style    :filled
-   :color    :black
-   :fontname "courier"
-   :shape    :circle
-   :ratio    1})
+  {:style     :filled
+   :fillcolor :black
+   :color     :dimgray
+   :fontname  "courier"
+   :shape     :circle
+   :ratio     1})
 
 
 (defn get-node-colour
@@ -95,10 +108,11 @@
            (get-node-colour g dest))
     {:color (get-node-colour g src)}))
 
-
 (defn style-graph
   [g]
   (->> g
+       (add-node-attrs set-coordinates)
+       (add-node-attrs colour->fillcolour)
        (add-node-attrs (constantly default-node-attrs))
        (add-edge-attrs infer-edge-colour)))
 
