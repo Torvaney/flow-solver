@@ -1,43 +1,59 @@
 (ns flow-solver.sat
-  (:require [flow-solver.graph :as graph]
-            [clojure.math.combinatorics :as combo]
+  (:require [clojure.math.combinatorics :as combo]
             [rolling-stones.core :as sat]
             [ubergraph.core :as uber]))
 
 
-(defn create-node
-  "Create a new node from coordinates and (optionally) attributes."
-  ([coords]
-   (create-node coords nil))
-  ([[x y :as coords] attrs]
-   (if attrs
-     [coords attrs]
-     [coords])))
-
-
-(defn attach-attrs
-  "Attach attributes to a coll of nodes"
-  [g nodes]
-  (mapv #(create-node % (get (:attrs g) %)) nodes))
-
-
-(defn nodes-with-attrs
+(defn get-graph-colours
   [g]
-  (->> (uber/nodes g) (attach-attrs g)))
+  (->> g :attrs vals (map :color) distinct))
 
 
-(defn connected-nodes
-  "Get any nodes connected by an edge to a given node."
-  [g [coord colour :as node]]
-  (->> (uber/successors g coord) (attach-attrs g)))
+(defn get-node-colour
+  [g node]
+  (-> g :attrs (get node) :color))
 
 
-(defn possible-node-colours
-  "Generate a vector of nodes enumerating all the possible colours that a node could be."
-  [colours [coord attrs :as node]]
-  (if attrs
-    [node]
-    (mapv #(create-node coord {:color %}) colours)))
+(defn edge->sat
+  "Converts an edge to a SAT symbol"
+  ([edge]
+   {:<-> #{(uber/src edge) (uber/dest edge)}})
+  ([edge colour]
+   {:<-> #{(uber/src edge) (uber/dest edge)}
+    :colour colour}))
+
+
+(defn edge-colours
+  [colours edge]
+  (->> (map #(edge->sat edge %) colours) (cons (edge->sat edge))))
+
+
+(defn edges-such-that
+  "Find all possible edge combinations that satisfy predicate function p"
+  [p all-colours edges]
+  (let [possible-edges    (map #(edge-colours all-colours %) edges)
+        edge-combinations (apply combo/cartesian-product possible-edges)]
+    (->> edge-combinations
+         (filter p)
+         (map #(apply sat/AND %))
+         (apply sat/OR))))
+
+
+(defn exactly-one-colour
+  "Each terminal (coloured) node must have exactly one coloured edge, of a
+    pre-specified colour."
+  [colour edges]
+  (let [coloured-edges (keep :colour edges)]
+    (and (= 1 (count coloured-edges))
+         (= colour (first coloured-edges)))))
+
+
+(defn exactly-two-colours
+  "Each connector node must have exactly two coloured edges (of the same colour)"
+  [edges]
+  (let [edge-colours (keep :colour edges)]
+    (and (= 2 (count edge-colours))
+         (apply = edge-colours))))
 
 
 (defn one-hot
@@ -49,80 +65,63 @@
        (apply sat/OR)))
 
 
-(defn one-hot-node-colour
-  "Creates a SAT expression for the edges connected to all nodes."
-  [colours node]
-  (->> node (possible-node-colours colours) one-hot))
+(defn one-hot-edge-colour
+  "One-hot encodes an edge's colour as a SAT expression"
+  [colours edge]
+  (one-hot (edge-colours colours edge)))
 
 
-(defn node-colours
-  "Creates a SAT expression asserting that each node should have exactly one colour"
-  [colours g]
-  (->> (nodes-with-attrs g)
-       (map #(one-hot-node-colour colours %))
-       (apply sat/AND)))
+(defn one-hot-edges
+  "One-hot encodes a set of edges' colours as a SAT expression"
+  [colours edges]
+  (apply sat/AND (mapv #(one-hot-edge-colour colours %) edges)))
 
 
-(defn count-nodes-of-colour
-  "Counts the number of nodes of a given colour"
-  [colour nodes]
-  (->> nodes (filter #(= (:color (second %)) colour)) count))
+(defn node->sat
+  "Creates a SAT expression for the edges connected to a given node.
+   Each terminal (coloured) node must have exactly one coloured edge.
+   Each connector node must have exactly two coloured edges (of the same colour)"
+  [g node]
+  (let [colours     (get-graph-colours g)
+        edges       (uber/find-edges g {:src node})]
+    (if-let [colour (get-node-colour g node)]
+      (edges-such-that #(exactly-one-colour colour %) colours edges)
+      (edges-such-that exactly-two-colours            colours edges))))
 
 
-(defn connected-to-n-of-same-colour
-  "Creates a SAT expression asserting that a given node is part of a valid pipe of a specific colour.
-
-   This means checking that the correct number of adjacent nodes are the same colour as the
-   node in question.
-
-   Correct number of nodes:
-     * 1 for terminal nodes
-     * 2 for connector nodes"
-  [colours n g [_ {colour :color} :as node]]
-  (or (some->> (connected-nodes g node)
-               (map #(possible-node-colours colours %))
-               (apply combo/cartesian-product)
-               (filter #(<= n (count-nodes-of-colour colour %)))
-               seq
-               (map #(apply sat/AND node %))
-               (apply sat/OR))
-      ;; If there are no valid combinations of neighbours, then the node cannot exist
-      ;; with the colour supplied
-      (sat/negate node)))
-
-
-(defn node-in-pipe
-  "Creates a SAT expression asserting that a given node is part of a valid pipe of 
-   any colour by comparing it to neighbouring nodes' colours."
-  [colours g node]
-  (if-let [colour (second node)]
-    (connected-to-n-of-same-colour colours 1 g node)
-    (->> (possible-node-colours colours node)
-         (map #(connected-to-n-of-same-colour colours 2 g %))
-         (apply sat/OR))))
-
-
-(defn nodes-in-pipes
-  "Creates a SAT expression asserting that each node is part of a valid pipe
-   by comparing it to neighbouring nodes' colours."
-  [colours g]
-  (->> (nodes-with-attrs g)
-       (map #(node-in-pipe colours g %))
+(defn nodes->sat
+  "Create a SAT expression for the edges connected to all nodes."
+  [g]
+  (->> (uber/nodes g)
+       ;; We have to use mapv to actualise the collection, here. 
+       ;; If we just use map, only the first 2 nodes are used for some reason?
+       ;; ¯\_(ツ)_/¯
+       (mapv #(node->sat g %))
        (apply sat/AND)))
 
 
 (defn graph->sat
   "Convert a graph to a SAT expression"
   [g]
-  (let [colours (->> g :attrs vals (map :color) distinct)]
+  (let [colours (get-graph-colours g)]
     (sat/AND
-     (node-colours colours g)
-     (nodes-in-pipes colours g))))
+     ;; each edge is only 1 colour
+     ;; all edges on a node are the same colour
+     ;; correct number of (coloured) edges
+     (one-hot-edges colours (uber/edges g))
+     (nodes->sat g))))
+
+
+(defn sat->edge
+  "Converts an edge to a SAT symbol"
+  [{nodes :<-> colour :colour}]
+  [(first nodes) (second nodes) {:color colour}])
 
 
 (defn sat->graph
   "Convert a solved SAT into a graph"
-  [init solution]
+  [_ solution]
   (->> solution
        (filter sat/positive?)
-       (apply uber/add-nodes-with-attrs init)))
+       (mapv sat->edge)
+       (apply uber/graph)))

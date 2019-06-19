@@ -66,14 +66,6 @@
        (apply uber/add-nodes-with-attrs g)))
 
 
-(defn add-edge-attrs
-  [f g]
-  (->> (uber/edges g)
-       (map #(merge-attrs f g %))
-       (filter some?)
-       (apply uber/add-undirected-edges g)))
-
-
 (defn colour->fillcolour
   [g node]
   (if-let [colour (:color (uber/attrs g node))]
@@ -95,26 +87,24 @@
    :ratio     1})
 
 
-(defn get-node-colour
+(defn infer-node-colour
+  "Infer the colour of a node from its edges"
   [g node]
-  (-> g :attrs (get node) :color))
+  (some->> (uber/in-edges g node)
+           (map #(uber/attrs g %))
+           (keep :color)
+           distinct
+           first
+           (assoc {} :color)))
 
-
-(defn infer-edge-colour
-  "Infer edge colour from nodes. If both connected nodes are the same colour, draw
-   an edge of that colour."
-  [g {:keys [src dest] :as edge}]
-  (when (= (get-node-colour g src)
-           (get-node-colour g dest))
-    {:color (get-node-colour g src)}))
 
 (defn style-graph
   [g]
   (->> g
        (add-node-attrs set-coordinates)
+       (add-node-attrs infer-node-colour)
        (add-node-attrs colour->fillcolour)
-       (add-node-attrs (constantly default-node-attrs))
-       (add-edge-attrs infer-edge-colour)))
+       (add-node-attrs (constantly default-node-attrs))))
 
 
 (def default-viz-opts
