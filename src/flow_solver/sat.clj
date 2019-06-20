@@ -24,8 +24,29 @@
 
 
 (defn edge-colours
+  "Enumerate all the possible colours that an edge could have"
   [colours edge]
   (->> (map #(edge->sat edge %) colours) (cons (edge->sat edge))))
+
+
+(defn one-hot
+  "One-hot encodes a variable as a SAT expression"
+  [variants]
+  (->> variants
+       combo/permutations
+       (mapv #(apply sat/AND (first %) (mapv sat/negate (rest %))))
+       (apply sat/OR)))
+
+
+(defn one-hot-edge-colour
+  "One-hot encodes an edge's colour"
+  [colours edge]
+  (->> edge (edge-colours colours) one-hot))
+
+
+(defn edges-have-only-one-colour
+  [colours g]
+  (->> (uber/edges g) (mapv #(one-hot-edge-colour colours %)) (apply sat/AND)))
 
 
 (defn edges-such-that
@@ -35,8 +56,8 @@
         edge-combinations (apply combo/cartesian-product possible-edges)]
     (->> edge-combinations
          (filter p)
-         (map #(apply sat/AND %))
-         (apply sat/OR))))
+         (mapv #(apply sat/AND %))
+         one-hot)))
 
 
 (defn exactly-one-colour
@@ -56,71 +77,40 @@
          (apply = edge-colours))))
 
 
-(defn one-hot
-  "One-hot encodes a variable as a SAT expression"
-  [variants]
-  (->> variants
-       combo/permutations
-       (map #(apply sat/AND (first %) (map sat/negate (rest %))))
-       (apply sat/OR)))
-
-
-(defn one-hot-edge-colour
-  "One-hot encodes an edge's colour as a SAT expression"
-  [colours edge]
-  (one-hot (edge-colours colours edge)))
-
-
-(defn one-hot-edges
-  "One-hot encodes a set of edges' colours as a SAT expression"
-  [colours edges]
-  (apply sat/AND (mapv #(one-hot-edge-colour colours %) edges)))
-
-
-(defn node->sat
+(defn node-has-valid-connections
   "Creates a SAT expression for the edges connected to a given node.
    Each terminal (coloured) node must have exactly one coloured edge.
    Each connector node must have exactly two coloured edges (of the same colour)"
-  [g node]
-  (let [colours     (get-graph-colours g)
-        edges       (uber/find-edges g {:src node})]
+  [colours g node]
+  (let [edges (uber/find-edges g {:src node})]
     (if-let [colour (get-node-colour g node)]
       (edges-such-that #(exactly-one-colour colour %) colours edges)
-      (edges-such-that exactly-two-colours            colours edges))))
+      (edges-such-that   exactly-two-colours          colours edges))))
 
 
-(defn nodes->sat
-  "Create a SAT expression for the edges connected to all nodes."
-  [g]
-  (->> (uber/nodes g)
-       ;; We have to use mapv to actualise the collection, here. 
-       ;; If we just use map, only the first 2 nodes are used for some reason?
-       ;; ¯\_(ツ)_/¯
-       (mapv #(node->sat g %))
-       (apply sat/AND)))
+(defn nodes-have-valid-connections
+  [colours g]
+  (->> g uber/nodes (mapv #(node-has-valid-connections colours g %)) (apply sat/AND)))
 
 
 (defn graph->sat
   "Convert a graph to a SAT expression"
   [g]
   (let [colours (get-graph-colours g)]
-    (sat/AND
-     ;; each edge is only 1 colour
-     ;; all edges on a node are the same colour
-     ;; correct number of (coloured) edges
-     (one-hot-edges colours (uber/edges g))
-     (nodes->sat g))))
+     (sat/AND
+      (edges-have-only-one-colour colours g)
+      (nodes-have-valid-connections colours g))))
 
 
 (defn sat->edge
   "Converts an edge to a SAT symbol"
-  [{nodes :<-> colour :colour}]
+  [{nodes :<-> colour :colour :as edge}]
   [(first nodes) (second nodes) {:color colour}])
 
 
 (defn sat->graph
   "Convert a solved SAT into a graph"
-  [_ solution]
+  [solution]
   (->> solution
        (filter sat/positive?)
        (mapv sat->edge)

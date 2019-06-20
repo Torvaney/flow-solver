@@ -11,8 +11,8 @@
   [init]
   (->> init 
        flow-sat/graph->sat 
-       sat/solve-symbolic-formula 
-       (flow-sat/sat->graph init)))
+       sat/solve-symbolic-formula
+       flow-sat/sat->graph))
 
 
 (defn -main
@@ -22,4 +22,5 @@
     (do (graph/draw init   {:save {:filename (str (io/resource "output") "/before.png")
                                    :format   :png}})
         (graph/draw solved {:save {:filename (str (io/resource "output") "/after.png")
-                                   :format   :png}}))))
+                                   :format   :png}})
+        (println "Done!"))))

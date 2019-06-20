@@ -12,5 +12,7 @@
   :main flow-solver.core
   :repl-options {:init-ns flow-solver.core}
 
+  :jvm-opts ["-Xmx1g"]  
+
   :profiles
   {:test {:dependencies [[org.clojure/test.check "0.10.0-alpha3"]]}})
