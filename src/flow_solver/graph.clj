@@ -66,25 +66,17 @@
        (apply uber/add-nodes-with-attrs g)))
 
 
-(defn colour->fillcolour
-  [g node]
-  (if-let [colour (:color (uber/attrs g node))]
-    {:fillcolor colour}
-    {}))
+(defn add-edge-attrs
+  [f g]
+  (->> (uber/edges g)
+       (map #(merge-attrs f g %))
+       (filter some?)
+       (apply uber/add-undirected-edges g)))
 
 
 (defn set-coordinates
   [g [x y :as node]]
   {:pos (str x "," y)})
-
-
-(def default-node-attrs
-  {:style     :filled
-   :fillcolor :black
-   :color     :dimgray
-   :fontname  "courier"
-   :shape     :circle
-   :ratio     1})
 
 
 (defn infer-node-colour
@@ -98,28 +90,40 @@
            (assoc {} :color)))
 
 
+(defn set-penwidth
+  [n g node-or-edge]
+  (if (:color (uber/attrs g node-or-edge)) {:penwidth n} {}))
+
+
+(def default-node-attrs
+  {:style     :filled
+   :fillcolor :black
+   :color     :dimgray
+   :fontname  "courier"
+   :shape     :circle
+   :ratio     1})
+
+
 (defn style-graph
   [g]
   (->> g
        (add-node-attrs set-coordinates)
        (add-node-attrs infer-node-colour)
-       (add-node-attrs colour->fillcolour)
-       (add-node-attrs (constantly default-node-attrs))))
+       (add-node-attrs (partial set-penwidth 3))
+       (add-node-attrs (constantly default-node-attrs))
+       (add-edge-attrs (partial set-penwidth 5))))
 
 
 (def default-viz-opts
   {:layout    :neato
    :ratio     1
-   :bgcolor   :black
-   })
+   :bgcolor   :black})
 
 
 (defn draw
   "Draw a graph"
-  ([g]
-   (draw g {}))
+  ([g] (draw g {}))
   ([g opts]
    (let [viz-opts (merge opts default-viz-opts)]
-     (-> g
-         style-graph
+     (-> g style-graph
          (uber/viz-graph viz-opts)))))
