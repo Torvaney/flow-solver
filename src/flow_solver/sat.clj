@@ -29,12 +29,33 @@
   (->> (map #(edge->sat edge %) colours) (cons (edge->sat edge))))
 
 
+(defn drop-nth
+  [n xs]
+  (concat
+   (take n xs) 
+   (drop (inc n) xs)))
+
+
+(defn partition-each-element
+  "Returns a list of all the distinct one-element partitions of xs.
+
+   For example: 
+     (partition-each-element [:a :b :c :d :e])
+     => ([:a (:b :c :d :e)]
+         [:b (:a :c :d :e)]
+         [:c (:a :b :d :e)]
+         [:d (:a :b :c :e)]
+         [:e (:a :b :c :d)])"
+  [xs]
+  (map-indexed (fn [i x] [x (drop-nth i xs)]) xs))
+  
+
 (defn one-hot
   "One-hot encodes a variable as a SAT expression"
   [variants]
   (->> variants
-       combo/permutations
-       (mapv #(apply sat/AND (first %) (mapv sat/negate (rest %))))
+       partition-each-element
+       (map (fn [[x xs]] (apply sat/AND x (map sat/negate xs))))
        (apply sat/OR)))
 
 
@@ -42,11 +63,6 @@
   "One-hot encodes an edge's colour"
   [colours edge]
   (->> edge (edge-colours colours) one-hot))
-
-
-(defn edges-have-only-one-colour
-  [colours g]
-  (->> (uber/edges g) (mapv #(one-hot-edge-colour colours %)) (apply sat/AND)))
 
 
 (defn edges-such-that
@@ -88,18 +104,15 @@
       (edges-such-that   exactly-two-colours          colours edges))))
 
 
-(defn nodes-have-valid-connections
-  [colours g]
-  (->> g uber/nodes (mapv #(node-has-valid-connections colours g %)) (apply sat/AND)))
-
-
 (defn graph->sat
   "Convert a graph to a SAT expression"
   [g]
   (let [colours (get-graph-colours g)]
-     (sat/AND
-      (edges-have-only-one-colour colours g)
-      (nodes-have-valid-connections colours g))))
+    (apply
+     sat/AND
+     (concat
+      (map #(one-hot-edge-colour colours %)          (uber/edges g))
+      (map #(node-has-valid-connections colours g %) (uber/nodes g))))))
 
 
 (defn sat->edge
@@ -113,5 +126,5 @@
   [solution]
   (->> solution
        (filter sat/positive?)
-       (mapv sat->edge)
+       (map sat->edge)
        (apply uber/graph)))
