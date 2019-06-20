@@ -20,13 +20,12 @@
         init    (graph/init-graph map-edn)
         solved  (future (solve init))]
     (do 
-      (println "Attempting to solve a " (:dim map-edn) "-by-" (:dim map-edn) " puzzle...")
+      (println "Attempting to solve a" (:dim map-edn) "by" (:dim map-edn) "puzzle...")
       (println (if @solved "Solved!" "No solution found. Are you _sure_ you gave the right map?"))
+      
       (println "Attempting to save before/after images...")
-
       (graph/draw init    {:save {:filename (str (io/resource "output") "/before.png")
                                   :format   :png}})
       (graph/draw @solved {:save {:filename (str (io/resource "output") "/after.png")
                                   :format   :png}})
-
       (println "Done!"))))
