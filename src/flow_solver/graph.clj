@@ -120,7 +120,7 @@
 
 (defn set-penwidth
   [n g node-or-edge]
-  (if (:color (uber/attrs g node-or-edge)) {:penwidth n} {}))
+  (if (:color (uber/attrs g node-or-edge)) {:penwidth n} {:penwidth 0}))
 
 
 (def default-node-attrs
@@ -131,6 +131,7 @@
    :fontname  "courier"
    :shape     :circle
    :width     0.6
+   :penwidth  3
    :ratio     1})
 
 
@@ -141,9 +142,9 @@
        (add-node-attrs infer-node-type)
        (add-node-attrs infer-node-colour)
        (add-node-attrs highlight-terminal-nodes)
-       (add-node-attrs (partial set-penwidth 3))
        (add-node-attrs (constantly default-node-attrs))
-       (add-edge-attrs (partial set-penwidth 5))))
+       (add-edge-attrs (partial set-penwidth 5))
+       (add-node-attrs (constantly default-node-attrs))))
 
 
 (def default-viz-opts
