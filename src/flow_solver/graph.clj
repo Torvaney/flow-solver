@@ -50,9 +50,9 @@
 
 (defn merge-attrs
   "Returns a node-or-edge with new attributes derived from f. Keeping any attributes 
-   that already exist."
+   that already exist (excluding nil values)."
   [f g node-or-edge]
-  (let [current  (uber/attrs g node-or-edge)
+  (let [current  (->> (uber/attrs g node-or-edge) (into {} (filter (comp some? val))))
         new      (f g node-or-edge)
         combined (merge new current)]
     (if (uber/edge? node-or-edge)
@@ -143,8 +143,7 @@
        (add-node-attrs infer-node-colour)
        (add-node-attrs highlight-terminal-nodes)
        (add-node-attrs (constantly default-node-attrs))
-       (add-edge-attrs (partial set-penwidth 5))
-       (add-node-attrs (constantly default-node-attrs))))
+       (add-edge-attrs (partial set-penwidth 5))))
 
 
 (def default-viz-opts
