@@ -40,7 +40,9 @@
 (defn init-graph
   "Create a new graph from a graph spec"
   [{:keys [dim nodes]}]
-  (apply uber/add-nodes-with-attrs (square-graph dim) nodes))
+  (->> nodes
+       (map (fn [[xy attrs]] [xy (assoc attrs :node-type :terminal)]))
+       (apply uber/add-nodes-with-attrs (square-graph dim))))
 
 
 ;; Display
@@ -79,15 +81,41 @@
   {:pos (str x "," y)})
 
 
+(defn- get-node-colours
+  [g node]
+  (->> (uber/in-edges g node)
+       (map #(uber/attrs g %))
+       (keep :color)))
+
+
 (defn infer-node-colour
   "Infer the colour of a node from its edges"
   [g node]
-  (some->> (uber/in-edges g node)
-           (map #(uber/attrs g %))
-           (keep :color)
+  (some->> (get-node-colours g node)
+           seq
            distinct
            first
            (assoc {} :color)))
+
+
+(defn infer-node-type
+  [g node]
+  (let [node-colours  (get-node-colours g node)
+        n-connections (count node-colours)]
+    (case n-connections
+      0 {:node-type :empty}
+      1 {:node-type :terminal}
+      2 {:node-type :connector}
+      {})))
+
+
+(defn highlight-terminal-nodes
+  "Make terminal nodes clear"
+  [g node]
+  (let [{:keys [color node-type]} (uber/attrs g node)]
+    (if (= :terminal node-type)
+      {:fillcolor color}
+      {})))
 
 
 (defn set-penwidth
@@ -99,8 +127,10 @@
   {:style     :filled
    :fillcolor :black
    :color     :dimgray
+   :label     ""
    :fontname  "courier"
    :shape     :circle
+   :width     0.75
    :ratio     1})
 
 
@@ -108,7 +138,9 @@
   [g]
   (->> g
        (add-node-attrs set-coordinates)
+       (add-node-attrs infer-node-type)
        (add-node-attrs infer-node-colour)
+       (add-node-attrs highlight-terminal-nodes)
        (add-node-attrs (partial set-penwidth 3))
        (add-node-attrs (constantly default-node-attrs))
        (add-edge-attrs (partial set-penwidth 5))))
