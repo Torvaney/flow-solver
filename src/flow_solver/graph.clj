@@ -130,7 +130,7 @@
    :label     ""
    :fontname  "courier"
    :shape     :circle
-   :width     0.75
+   :width     0.6
    :ratio     1})
 
 
