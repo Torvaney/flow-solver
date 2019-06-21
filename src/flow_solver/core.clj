@@ -28,4 +28,5 @@
                                   :format   :png}})
       (graph/draw @solved {:save {:filename (str (io/resource "output") "/after.png")
                                   :format   :png}})
-      (println "Done!"))))
+      (println "Done!")
+      (shutdown-agents))))
